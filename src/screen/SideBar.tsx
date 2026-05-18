@@ -44,9 +44,7 @@ const SideBar = () => {
   const isCollapsedSideBar = useAppSelector(
     (state) => state.UIState.isCollapsedSideBar
   );
-  const isKeepScreen = useAppSelector((state) => state.UIState.isKeepScreen);
-
-  const [isSmall, setIsSmall] = useState(false);
+const [isSmall, setIsSmall] = useState(false);
 
   const iscollapsed = useMemo(
     () => (isSmall ? isCollapsedSideBar : false),
@@ -123,12 +121,10 @@ const SideBar = () => {
                         key={item.key}
                         onClick={() => {
                           dispatch(setSelectedSideBar(item));
-                          if (isKeepScreen) {
-                            localStorage.setItem(
-                              LS_KEYS.last_screen,
-                              JSON.stringify(item)
-                            );
-                          }
+                          localStorage.setItem(
+                            LS_KEYS.last_screen,
+                            JSON.stringify(item)
+                          );
                         }}
                         className={cn(
                           "w-full flex items-start gap-2 text-left py-1.5 px-2 rounded-md",
