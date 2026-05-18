@@ -6,42 +6,22 @@
   "dependencies": {
     "@ant-design/charts": "^2.6.6",
     "@reduxjs/toolkit": "^1.9.5",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/axios": "^0.14.0",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.41",
-    "@types/react": "^18.2.20",
-    "@types/react-dom": "^18.2.7",
-    "@types/react-redux": "^7.1.25",
-    "@types/redux-saga": "^0.10.5",
     "antd": "^5.25.2",
     "axios": "^1.4.0",
-    "gh-pages": "^6.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^8.1.2",
-    "react-scripts": "5.0.1",
     "redux": "^4.2.1",
     "redux-saga": "^1.2.3",
-    "reselect": "^4.1.8",
-    "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4"
+    "reselect": "^4.1.8"
   },
   "scripts": {
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "predeploy": "bun run build",
+    "deploy": "gh-pages -d dist"
   },
   "browserslist": {
     "production": [
@@ -56,8 +36,17 @@
     ]
   },
   "devDependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/node": "^16.18.41",
+    "@types/react": "^18.2.20",
+    "@types/react-dom": "^18.2.7",
+    "@types/react-redux": "^7.1.25",
     "@types/redux-logger": "^3.0.9",
-    "baseline-browser-mapping": "^2.9.19",
-    "redux-logger": "^3.0.6"
+    "@types/redux-saga": "^0.10.5",
+    "@vitejs/plugin-react": "^6.0.2",
+    "gh-pages": "^6.0.0",
+    "redux-logger": "^3.0.6",
+    "typescript": "^4.9.5",
+    "vite": "^8.0.13"
   }
 }
