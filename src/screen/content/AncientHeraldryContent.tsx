@@ -232,7 +232,7 @@ const AncientHeraldryContent = () => {
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <Checkbox
                   checked={convertToFrag}
-                  onCheckedChange={(v) => setConvertToFrag(Boolean(v))}
+                  onCheckedChange={(v: boolean | "indeterminate") => setConvertToFrag(Boolean(v))}
                 />
                 <span className="text-sm">Convert Blueprint to Fragment</span>
               </label>

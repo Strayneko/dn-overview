@@ -235,7 +235,7 @@ const CollapseJadeContent = () => {
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <Checkbox
                         checked={e.craft}
-                        onCheckedChange={(v) => updateEntry(e.id, { craft: Boolean(v) })}
+                        onCheckedChange={(v: boolean | "indeterminate") => updateEntry(e.id, { craft: Boolean(v) })}
                       />
                       <span className="text-sm">Include craft mats</span>
                     </label>

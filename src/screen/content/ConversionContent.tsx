@@ -11,7 +11,6 @@ import { dataConversionCalculator } from "../../data/ConversionCalculatorData";
 import { CommonEquipmentCalculator } from "../../interface/Common.interface";
 import { CommonItemStats } from "../../interface/ItemStat.interface";
 import {
-  columnsResource,
   combineEqStats,
   getColumnsStats,
   getComparedData,
@@ -103,7 +102,7 @@ const ConversionContent = () => {
   }, [selectedRowKeys, dataSource]);
 
   const tableResource = useMemo(() => {
-    let temp = {
+    const temp = {
       "Armor Fragment": 0,
       "Acc Fragment": 0,
       "Wtd Fragment": 0,
@@ -120,7 +119,7 @@ const ConversionContent = () => {
       const isBuy = from === 0;
       const isEnhUnique = to <= 11 && from <= 11;
       const isEvo = to >= 12 && from <= 11;
-      let frag =
+      const frag =
         (Math.min(to, 11) - Math.max(isEnhUnique ? from : 11, 1)) * CONV_FRAG +
         (isBuy ? CONV_FRAG : 0);
       let lgFrag = 0;
@@ -264,7 +263,7 @@ const ConversionContent = () => {
                   ).map(({ label, keys }) => (
                     <button
                       key={label}
-                      onClick={() => setSelectedRowKeys(keys)}
+                      onClick={() => setSelectedRowKeys([...keys])}
                       className={`px-3 py-1 rounded text-sm border transition-colors ${
                         JSON.stringify([...selectedRowKeys].sort()) === JSON.stringify([...keys].sort())
                           ? "bg-primary text-primary-foreground border-primary"

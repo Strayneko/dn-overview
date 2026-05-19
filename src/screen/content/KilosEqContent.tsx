@@ -65,9 +65,6 @@ const KilosEqContent = () => {
   };
 
   const allSelected = selectedRowKeys.length === dataSource.length;
-  const toggleAll = () => {
-    setSelectedRowKeys(allSelected ? [] : dataSource.map((r) => r.key));
-  };
 
   const invalidDtSrc = useMemo(
     () => selectedRowKeys.some((k) => {
