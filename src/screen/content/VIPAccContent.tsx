@@ -50,8 +50,8 @@ const VIPAccContent = () => {
   }), [selectedRowKeys, dataSource]);
 
   const tableResource: { res1: TableMaterialList; res2: EquipmentExtraData } = useMemo(() => {
-    let temp: TableMaterialList = { "White Core": 0 };
-    let temp2: EquipmentExtraData = {};
+    const temp: TableMaterialList = { "White Core": 0 };
+    const temp2: EquipmentExtraData = {};
     if (invalidDtSrc) return { res1: temp, res2: temp2 };
 
     selectedRowKeys.forEach((item) => {

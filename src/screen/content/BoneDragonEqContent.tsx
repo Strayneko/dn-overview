@@ -73,8 +73,8 @@ const BoneDragonEqContent = () => {
   }), [selectedRowKeys, dataSource]);
 
   const tableResource: { res1: TableMaterialList; res2: ExtraData } = useMemo(() => {
-    let temp: TableMaterialList = { "Bone Fragment": 0, Garnet: 0, Essence: 0, Gold: 0 };
-    let temp2: ExtraData = { Jelly: 0 };
+    const temp: TableMaterialList = { "Bone Fragment": 0, Garnet: 0, Essence: 0, Gold: 0 };
+    const temp2: ExtraData = { Jelly: 0 };
     if (invalidDtSrc) return { res1: temp, res2: temp2 };
 
     selectedRowKeys.forEach((item) => {

@@ -75,7 +75,7 @@ const SpunGoldEqContent = () => {
   }), [selectedRowKeys, dataSource]);
 
   const tableResource: { res1: TableMaterialList } = useMemo(() => {
-    let temp: TableMaterialList = { "Shattered Armor Crystal": 0, "Shattered Weapon Crystal": 0, "Foundation Stone": 0, "Dim. Vestige": 0, Gold: 0 };
+    const temp: TableMaterialList = { "Shattered Armor Crystal": 0, "Shattered Weapon Crystal": 0, "Foundation Stone": 0, "Dim. Vestige": 0, Gold: 0 };
     selectedRowKeys.forEach((item) => {
       const found = dataSource.find((dt) => dt.key === item);
       if (!found) return;
