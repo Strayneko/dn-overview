@@ -1,10 +1,24 @@
 import { Select, Table } from "antd";
+import {
+  ArrowRight,
+  Feather,
+  Gem,
+  Hexagon,
+  Package,
+  Shield,
+  Sparkles,
+  Swords,
+} from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
-import ChartsCard, { ChartItem } from "../../components/ChartsCard";
-import EquipmentTable from "../../components/EquipmentTable";
-import ListingCard from "../../components/ListingCard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import ChartsCard, { ChartItem } from "../../components/ChartsCard";
+import ListingCard from "../../components/ListingCard";
 import { EmptyCommonnStat, TAB_KEY } from "../../constants/Common.constants";
 import { EQUIPMENT } from "../../constants/InGame.constants";
 import { dataConversionCalculator } from "../../data/ConversionCalculatorData";
@@ -82,6 +96,28 @@ const ENC_AST_STONE_WEAP = 3;
 const ENC_AST_POW_WTD = 550;
 const ENC_AST_STONE_WTD = 3;
 
+const ARMOR_KEYS = ["1", "2", "3", "4", "5"];
+const WEAPON_KEYS = ["6", "7"];
+const ACC_KEYS = ["8", "9", "10", "11"];
+const WTD_KEYS = ["12", "13", "14"];
+const ALL_KEYS = [...ARMOR_KEYS, ...WEAPON_KEYS, ...ACC_KEYS, ...WTD_KEYS];
+
+type MatKey = "Armor Fragment" | "Acc Fragment" | "Wtd Fragment" | "Astral Powder" | "Astral Stone";
+
+const MATERIAL_META: {
+  key: MatKey;
+  label: string;
+  icon: React.ElementType;
+  colorClass: string;
+  bgClass: string;
+}[] = [
+  { key: "Armor Fragment",  label: "Armor Fragment",  icon: Shield,   colorClass: "text-sky-500",    bgClass: "bg-sky-500/10" },
+  { key: "Acc Fragment",    label: "Acc Fragment",    icon: Gem,      colorClass: "text-violet-500", bgClass: "bg-violet-500/10" },
+  { key: "Wtd Fragment",    label: "WTD Fragment",    icon: Feather,  colorClass: "text-teal-500",   bgClass: "bg-teal-500/10" },
+  { key: "Astral Powder",   label: "Astral Powder",   icon: Sparkles, colorClass: "text-purple-500", bgClass: "bg-purple-500/10" },
+  { key: "Astral Stone",    label: "Astral Stone",    icon: Hexagon,  colorClass: "text-slate-500",  bgClass: "bg-slate-500/10" },
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ConversionContent = () => {
@@ -92,17 +128,41 @@ const ConversionContent = () => {
   const [selectStat, setSelectStat] = useState<{ label: string; value: string }>();
   const [selectPrev, setSelectPrev] = useState<{ label: string; value: string }>();
 
-  const invalidDtSrc = useMemo(() => {
-    let flag = false;
-    selectedRowKeys.forEach((item) => {
-      const found = dataSource.find((dt) => dt.key === item);
-      if (!flag && found && found.to <= found.from) flag = true;
+  const handleSave = (row: CommonEquipmentCalculator) => {
+    setDataSource((prev) => {
+      const next = [...prev];
+      const idx = next.findIndex((item) => item.key === row.key);
+      if (idx !== -1) next.splice(idx, 1, { ...next[idx], ...row });
+      return next;
     });
-    return flag;
-  }, [selectedRowKeys, dataSource]);
+  };
+
+  const toggleRow = (key: React.Key) => {
+    setSelectedRowKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const toggleGroup = (keys: string[]) => {
+    const allSelected = keys.every((k) => selectedRowKeys.includes(k));
+    setSelectedRowKeys((prev) =>
+      allSelected
+        ? prev.filter((k) => !keys.includes(k as string))
+        : [...new Set([...prev, ...keys])]
+    );
+  };
+
+  const invalidDtSrc = useMemo(
+    () =>
+      selectedRowKeys.some((key) => {
+        const found = dataSource.find((dt) => dt.key === key);
+        return found ? found.to <= found.from : false;
+      }),
+    [selectedRowKeys, dataSource]
+  );
 
   const tableResource = useMemo(() => {
-    const temp = {
+    const temp: Record<MatKey, number> & { "Weapon Fragment": number } = {
       "Armor Fragment": 0,
       "Acc Fragment": 0,
       "Wtd Fragment": 0,
@@ -201,12 +261,13 @@ const ConversionContent = () => {
   }, [selectedRowKeys, dataSource, invalidDtSrc]);
 
   useEffect(() => {
-    const newData = dataSource.map((item) => ({
-      ...item,
-      from: selectFrom < item.min ? item.min : selectFrom >= item.max ? item.max : selectFrom,
-      to: selectTo > item.max ? item.max : selectTo,
-    }));
-    setDataSource(newData);
+    setDataSource((prev) =>
+      prev.map((item) => ({
+        ...item,
+        from: selectFrom < item.min ? item.min : selectFrom >= item.max ? item.max : selectFrom,
+        to: selectTo > item.max ? item.max : selectTo,
+      }))
+    );
   }, [selectFrom, selectTo]);
 
   const chartItems = useMemo((): ChartItem[] => {
@@ -232,120 +293,226 @@ const ConversionContent = () => {
     return holder;
   }, [selectStat, selectedRowKeys, dataSource]);
 
-  const matRows = Object.entries(tableResource).filter(([_, v]) => v !== 0).map(([k, v]) => ({
-    mats: k,
-    amount: v,
-  }));
+  const hasMaterials = MATERIAL_META.some(({ key }) => tableResource[key] > 0);
+
+  // ─── Sub-components ───────────────────────────────────────────────────────────
+
+  const renderGroup = (
+    label: string,
+    GroupIcon: React.ElementType,
+    accentClass: string,
+    keys: string[]
+  ) => {
+    const allSelected = keys.every((k) => selectedRowKeys.includes(k));
+    const rows = dataSource.filter((r) => keys.includes(r.key));
+
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-2">
+            <div className={cn("w-0.5 h-3.5 rounded-full", accentClass)} />
+            <GroupIcon size={11} className="text-muted-foreground" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              {label}
+            </span>
+          </div>
+          <button
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => toggleGroup(keys)}
+          >
+            {allSelected ? "Deselect all" : "Select all"}
+          </button>
+        </div>
+
+        <div className="space-y-0.5">
+          {rows.map((row) => {
+            const isSelected = selectedRowKeys.includes(row.key);
+            const hasError = row.to <= row.from;
+            return (
+              <div
+                key={row.key}
+                className={cn(
+                  "flex items-center gap-2 py-1.5 px-2 rounded-lg transition-all duration-100",
+                  isSelected
+                    ? "bg-primary/5 ring-1 ring-primary/15"
+                    : "hover:bg-muted/50"
+                )}
+              >
+                <Checkbox
+                  id={`eq-${row.key}`}
+                  checked={isSelected}
+                  onCheckedChange={() => toggleRow(row.key)}
+                />
+                <label
+                  htmlFor={`eq-${row.key}`}
+                  className={cn(
+                    "flex-1 text-sm cursor-pointer select-none transition-colors",
+                    isSelected ? "font-medium text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {row.equipment}
+                </label>
+                <Select
+                  size="small"
+                  value={row.from}
+                  options={opt(row.min, row.max)}
+                  onChange={(val) => handleSave({ ...row, from: val })}
+                  status={isSelected && hasError ? "error" : undefined}
+                  style={{ width: 86 }}
+                />
+                <ArrowRight size={12} className="shrink-0 text-muted-foreground/60" />
+                <Select
+                  size="small"
+                  value={row.to}
+                  options={opt(row.min, row.max)}
+                  onChange={(val) => handleSave({ ...row, to: val })}
+                  status={isSelected && hasError ? "error" : undefined}
+                  style={{ width: 86 }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <Tabs defaultValue="calculator" className="space-y-4">
-      <TabsList>
+    <Tabs defaultValue="calculator">
+      <TabsList className="mb-4">
         <TabsTrigger value="calculator">Calculator</TabsTrigger>
         <TabsTrigger value="reference">Reference</TabsTrigger>
       </TabsList>
 
       {/* ── CALCULATOR ── */}
-      <TabsContent value="calculator" className="space-y-4">
+      <TabsContent value="calculator" className="mt-0 space-y-4">
+
         {/* Settings bar */}
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex flex-wrap gap-x-6 gap-y-3 items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Quick select</span>
-                <div className="flex gap-1 flex-wrap">
-                  {(
-                    [
-                      { label: "Armor", keys: ["1", "2", "3", "4", "5"] },
-                      { label: "Weapon", keys: ["6", "7"] },
-                      { label: "Accessories", keys: ["8", "9", "10", "11"] },
-                      { label: "WTD", keys: ["12", "13", "14"] },
-                    ] as const
-                  ).map(({ label, keys }) => (
-                    <button
-                      key={label}
-                      onClick={() => setSelectedRowKeys([...keys])}
-                      className={`px-3 py-1 rounded text-sm border transition-colors ${
-                        JSON.stringify([...selectedRowKeys].sort()) === JSON.stringify([...keys].sort())
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background border-border hover:bg-muted"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+        <Card size="sm" className="bg-muted/30">
+          <CardContent className="py-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-medium text-muted-foreground">Quick select</span>
+                {[
+                  { label: "Armor",       keys: ARMOR_KEYS },
+                  { label: "Weapon",      keys: WEAPON_KEYS },
+                  { label: "Accessories", keys: ACC_KEYS },
+                  { label: "WTD",         keys: WTD_KEYS },
+                  { label: "All",         keys: ALL_KEYS },
+                ].map(({ label, keys }) => (
+                  <Button key={label} size="xs" variant="outline" onClick={() => setSelectedRowKeys(keys)}>
+                    {label}
+                  </Button>
+                ))}
+                <Button size="xs" variant="ghost" onClick={() => setSelectedRowKeys([])}>
+                  Clear
+                </Button>
               </div>
 
-              <div className="w-px h-5 bg-border hidden sm:block" />
+              <Separator orientation="vertical" className="h-5 hidden sm:block" />
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">From</span>
+                <span className="text-xs font-medium text-muted-foreground">Apply to all</span>
                 <Select
                   value={selectFrom}
-                  options={opt(0, 15)}
-                  onChange={setSelectFrom}
-                  style={{ width: 120 }}
                   size="small"
+                  style={{ width: 86 }}
+                  onChange={setSelectFrom}
+                  options={opt(0, 15)}
                 />
-                <span className="text-sm text-muted-foreground">To</span>
+                <ArrowRight size={12} className="text-muted-foreground/60" />
                 <Select
                   value={selectTo}
-                  options={opt(0, 15)}
-                  onChange={setSelectTo}
-                  style={{ width: 120 }}
                   size="small"
+                  style={{ width: 86 }}
+                  onChange={setSelectTo}
+                  options={opt(0, 15)}
                 />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Equipment table */}
-        <EquipmentTable
-          selectedRowKeys={selectedRowKeys}
-          setSelectedRowKeys={setSelectedRowKeys}
-          dataSource={dataSource}
-          setDataSource={setDataSource}
-          customLabeling={(item) => getLabel(item)}
-        />
-
-        {invalidDtSrc && (
-          <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-            From cannot exceed the To option
-          </div>
-        )}
-
-        {/* Results grid */}
+        {/* Equipment + Materials */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+          {/* Equipment selection */}
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Required Materials</CardTitle>
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Shield size={14} className="text-muted-foreground" />
+                Equipment Selection
+              </CardTitle>
             </CardHeader>
-            <CardContent className="px-0 pb-2">
-              {matRows.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-muted-foreground">Select equipment rows above to see materials.</p>
-              ) : (
-                <div className="divide-y">
-                  {matRows.map((r) => (
-                    <div key={r.mats} className="flex items-center justify-between px-4 py-2 hover:bg-muted/50 transition-colors">
-                      <span className="text-sm">{r.mats}</span>
-                      <span className="text-sm font-medium tabular-nums">{r.amount.toLocaleString()}</span>
-                    </div>
-                  ))}
+            <CardContent className="pt-4 space-y-4">
+              {renderGroup("Armor",       Shield,  "bg-sky-400",    ARMOR_KEYS)}
+              <Separator />
+              {renderGroup("Weapon",      Swords,  "bg-rose-400",   WEAPON_KEYS)}
+              <Separator />
+              {renderGroup("Accessories", Gem,     "bg-violet-400", ACC_KEYS)}
+              <Separator />
+              {renderGroup("WTD",         Feather, "bg-teal-400",   WTD_KEYS)}
+            </CardContent>
+          </Card>
+
+          {/* Required materials */}
+          <Card>
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Package size={14} className="text-muted-foreground" />
+                Required Materials
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {invalidDtSrc && (
+                <Alert variant="destructive" className="mb-3 py-2">
+                  <AlertDescription className="text-xs">
+                    "From" must be less than "To" for all selected equipment.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!hasMaterials && !invalidDtSrc && (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Package size={36} className="mb-3 opacity-15" />
+                  <p className="text-sm text-center leading-relaxed">
+                    Select equipment and set an<br />enhancement range to begin.
+                  </p>
+                </div>
+              )}
+
+              {hasMaterials && (
+                <div className="space-y-1">
+                  {MATERIAL_META.filter(({ key }) => tableResource[key] > 0).map(
+                    ({ key, label, icon: Icon, colorClass, bgClass }) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className={cn("rounded-full p-1.5", bgClass)}>
+                            <Icon size={12} className={colorClass} />
+                          </div>
+                          <span className="text-sm">{label}</span>
+                        </div>
+                        <span className="text-sm font-mono font-medium tabular-nums">
+                          {tableResource[key].toLocaleString()}
+                        </span>
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
-
-          <div className="flex flex-col gap-4">
-            <ListingCard title="Status Increase" data={getStatDif(statDif)} />
-          </div>
         </div>
 
         {/* Weapon success-rate notes */}
         {((weaponNotes?.main?.length ?? 0) > 0 || (weaponNotes?.second?.length ?? 0) > 0) && (
-          <Card>
-            <CardContent className="pt-4 space-y-1">
+          <Card size="sm">
+            <CardContent className="py-3 space-y-1">
               {(weaponNotes?.main?.length ?? 0) > 0 && (
                 <p className="text-sm text-muted-foreground">
                   Main Weapon success rate: {weaponNotes!.main.join(", ")}
@@ -360,7 +527,9 @@ const ConversionContent = () => {
           </Card>
         )}
 
-        {/* Charts */}
+        {/* Status + Charts */}
+        <ListingCard title="Status Increase" data={getStatDif(statDif)} />
+
         <ChartsCard
           title="Status Charts"
           data={chartItems}
@@ -382,12 +551,11 @@ const ConversionContent = () => {
             <TabsTrigger value="mats">Materials</TabsTrigger>
           </TabsList>
 
-          {/* Armor Stats */}
           <TabsContent value="stats-armor">
             <div className="space-y-4">
               {(
                 [
-                  { title: "Helm", eq: EQUIPMENT.HELM, cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, strPercentFlag: true, agiPercentFlag: true, intPercentFlag: true, vitPercentFlag: true, hpFlag: true, hpPercentFlag: true } },
+                  { title: "Helm",  eq: EQUIPMENT.HELM,  cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, strPercentFlag: true, agiPercentFlag: true, intPercentFlag: true, vitPercentFlag: true, hpFlag: true, hpPercentFlag: true } },
                   { title: "Upper", eq: EQUIPMENT.UPPER, cols: { phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, strPercentFlag: true, agiPercentFlag: true, intPercentFlag: true, vitPercentFlag: true, hpFlag: true, hpPercentFlag: true } },
                   { title: "Lower", eq: EQUIPMENT.LOWER, cols: { phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, hpFlag: true, hpPercentFlag: true } },
                   { title: "Glove", eq: EQUIPMENT.GLOVE, cols: { phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, hpFlag: true, hpPercentFlag: true } },
@@ -397,74 +565,56 @@ const ConversionContent = () => {
                 <div key={title}>
                   <p className="text-sm font-semibold mb-2">{title}</p>
                   <div className="overflow-x-auto rounded-md border">
-                    <Table
-                      size="small"
-                      dataSource={getResource(TAB_KEY.miscConversion, eq)}
-                      columns={getColumnsStats(cols)}
-                      pagination={false}
-                    />
+                    <Table size="small" dataSource={getResource(TAB_KEY.miscConversion, eq)} columns={getColumnsStats(cols)} pagination={false} />
                   </div>
                 </div>
               ))}
             </div>
           </TabsContent>
 
-          {/* Weapon Stats */}
           <TabsContent value="stats-weapon">
             <div className="space-y-4">
               {(
                 [
-                  { title: "Main Weapon", eq: EQUIPMENT.MAIN_WEAPON, cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtFlag: true, crtPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, cdmFlag: true } },
+                  { title: "Main Weapon",   eq: EQUIPMENT.MAIN_WEAPON,   cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtFlag: true, crtPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, cdmFlag: true } },
                   { title: "Second Weapon", eq: EQUIPMENT.SECOND_WEAPON, cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, cdmFlag: true, fdFlag: true, crtFlag: true } },
                 ] as const
               ).map(({ title, eq, cols }) => (
                 <div key={title}>
                   <p className="text-sm font-semibold mb-2">{title}</p>
                   <div className="overflow-x-auto rounded-md border">
-                    <Table
-                      size="small"
-                      dataSource={getResource(TAB_KEY.miscConversion, eq)}
-                      columns={getColumnsStats(cols)}
-                      pagination={false}
-                    />
+                    <Table size="small" dataSource={getResource(TAB_KEY.miscConversion, eq)} columns={getColumnsStats(cols)} pagination={false} />
                   </div>
                 </div>
               ))}
             </div>
           </TabsContent>
 
-          {/* Accessories Stats */}
           <TabsContent value="stats-acc">
             <div className="space-y-4">
               {(
                 [
                   { title: "Necklace", eq: EQUIPMENT.NECKLACE, cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, cdmFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, defFlag: true, magdefFlag: true } },
-                  { title: "Earring", eq: EQUIPMENT.EARRING, cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtFlag: true, crtPercentFlag: true, cdmFlag: true, fdFlag: true, hpFlag: true, hpPercentFlag: true } },
-                  { title: "Ring", eq: EQUIPMENT.RING1, cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtFlag: true, cdmFlag: true, fdFlag: true } },
+                  { title: "Earring",  eq: EQUIPMENT.EARRING,  cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtFlag: true, crtPercentFlag: true, cdmFlag: true, fdFlag: true, hpFlag: true, hpPercentFlag: true } },
+                  { title: "Ring",     eq: EQUIPMENT.RING1,    cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, crtFlag: true, cdmFlag: true, fdFlag: true } },
                 ] as const
               ).map(({ title, eq, cols }) => (
                 <div key={title}>
                   <p className="text-sm font-semibold mb-2">{title}</p>
                   <div className="overflow-x-auto rounded-md border">
-                    <Table
-                      size="small"
-                      dataSource={getResource(TAB_KEY.miscConversion, eq)}
-                      columns={getColumnsStats(cols)}
-                      pagination={false}
-                    />
+                    <Table size="small" dataSource={getResource(TAB_KEY.miscConversion, eq)} columns={getColumnsStats(cols)} pagination={false} />
                   </div>
                 </div>
               ))}
             </div>
           </TabsContent>
 
-          {/* WTD Stats */}
           <TabsContent value="stats-wtd">
             <div className="space-y-4">
               {(
                 [
-                  { title: "Wing", eq: EQUIPMENT.WING, note: "*Legend stats based on KDN patch note", cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, crtFlag: true, cdmFlag: true, fdFlag: true, vitFlag: true, moveSpeedPercentFlag: true, moveSpeedPercentTownFlag: true } },
-                  { title: "Tail", eq: EQUIPMENT.TAIL, note: "*Legend stats based on KDN patch note", cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, defPercentFlag: true, magdefPercentFlag: true } },
+                  { title: "Wing",  eq: EQUIPMENT.WING,  note: "*Legend stats based on KDN patch note", cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, crtFlag: true, cdmFlag: true, fdFlag: true, vitFlag: true, moveSpeedPercentFlag: true, moveSpeedPercentTownFlag: true } },
+                  { title: "Tail",  eq: EQUIPMENT.TAIL,  note: "*Legend stats based on KDN patch note", cols: { phyMagAtkFlag: true, phyMagAtkPercentFlag: true, attAtkPercentFlag: true, fdFlag: true, strFlag: true, agiFlag: true, intFlag: true, vitFlag: true, defPercentFlag: true, magdefPercentFlag: true } },
                   { title: "Decal", eq: EQUIPMENT.DECAL, note: "*Legend stats based on KDN patch note", cols: { phyMagAtkFlag: true, attAtkPercentFlag: true, crtFlag: true, crtPercentFlag: true, cdmFlag: true, fdFlag: true, defFlag: true, magdefFlag: true, defPercentFlag: true, magdefPercentFlag: true } },
                 ] as const
               ).map(({ title, eq, note, cols }) => (
@@ -474,136 +624,88 @@ const ConversionContent = () => {
                     {note && <span className="ml-2 text-xs font-normal text-muted-foreground italic">{note}</span>}
                   </p>
                   <div className="overflow-x-auto rounded-md border">
-                    <Table
-                      size="small"
-                      dataSource={getResource(TAB_KEY.miscConversion, eq)}
-                      columns={getColumnsStats(cols)}
-                      pagination={false}
-                    />
+                    <Table size="small" dataSource={getResource(TAB_KEY.miscConversion, eq)} columns={getColumnsStats(cols)} pagination={false} />
                   </div>
                 </div>
               ))}
             </div>
           </TabsContent>
 
-          {/* Materials */}
           <TabsContent value="mats">
             <div className="space-y-6">
-              {/* Armor */}
-              <div>
-                <p className="text-sm font-semibold mb-3">Armor</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement — uses Armor Fragment</p>
-                    {renderRefTable(["Action", "Amount"], [
-                      ["Buy from Store", CONV_FRAG],
-                      ["Every tap +0 → +10", CONV_FRAG],
-                    ])}
-                    <p className="text-xs text-muted-foreground mt-1 italic">* +1 to +10 have 100% success rate</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Evo to Legend</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", EV_AST_POW_ARMOR],
-                      ["Astral Stone", EV_AST_STONE],
-                    ])}
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement Legend (per tap)</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", ENC_AST_POW_ARMOR],
-                      ["Astral Stone", ENC_AST_STONE_ARMOR],
-                    ])}
-                  </div>
-                </div>
-              </div>
-
-              {/* Weapon */}
-              <div>
-                <p className="text-sm font-semibold mb-3">Weapon</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement — uses Weapon Fragment</p>
-                    {renderRefTable(["Action", "Amount"], [
-                      ["Every tap +0 → +10", WEAP_FRAG],
-                    ])}
-                    <p className="text-xs text-muted-foreground mt-1 italic">* Buy Conversion Weapon box via Trading House or Cherry Store</p>
-                    <p className="text-xs text-muted-foreground italic">Success rate: {WEAP_ENH_SUC_RATE.map((r) => `${r}%`).join(", ")}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Evo to Legend</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", EV_AST_POW_WEAP],
-                      ["Astral Stone", EV_AST_STONE],
-                    ])}
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement Legend (per tap)</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", ENC_AST_POW_WEAP],
-                      ["Astral Stone", ENC_AST_STONE_WEAP],
-                    ])}
-                  </div>
-                </div>
-              </div>
-
-              {/* Accessories */}
-              <div>
-                <p className="text-sm font-semibold mb-3">Accessories</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement — uses Acc Fragment</p>
-                    {renderRefTable(["Action", "Amount"], [
-                      ["Buy from Store", CONV_FRAG],
-                      ["Every tap +0 → +10", CONV_FRAG],
-                    ])}
-                    <p className="text-xs text-muted-foreground mt-1 italic">* +1 to +10 have 100% success rate</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Evo to Legend</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", EV_AST_POW_ACC],
-                      ["Astral Stone", EV_AST_STONE],
-                    ])}
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement Legend (per tap)</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", ENC_AST_POW_ACC],
-                      ["Astral Stone", ENC_AST_STONE_ACC],
-                    ])}
+              {[
+                {
+                  label: "Armor",
+                  fragLabel: "Armor Fragment",
+                  buyRow: true,
+                  evo: EV_AST_POW_ARMOR,
+                  enc: ENC_AST_POW_ARMOR,
+                  encStone: ENC_AST_STONE_ARMOR,
+                  note: "* +1 to +10 have 100% success rate",
+                  weaponNote: undefined as string | undefined,
+                },
+                {
+                  label: "Weapon",
+                  fragLabel: "Weapon Fragment",
+                  buyRow: false,
+                  evo: EV_AST_POW_WEAP,
+                  enc: ENC_AST_POW_WEAP,
+                  encStone: ENC_AST_STONE_WEAP,
+                  note: "* Buy Conversion Weapon box via Trading House or Cherry Store",
+                  weaponNote: `Success rate: ${WEAP_ENH_SUC_RATE.map((r) => `${r}%`).join(", ")}`,
+                },
+                {
+                  label: "Accessories",
+                  fragLabel: "Acc Fragment",
+                  buyRow: true,
+                  evo: EV_AST_POW_ACC,
+                  enc: ENC_AST_POW_ACC,
+                  encStone: ENC_AST_STONE_ACC,
+                  note: "* +1 to +10 have 100% success rate",
+                  weaponNote: undefined as string | undefined,
+                },
+                {
+                  label: "WTD (Wing / Tail / Decal)",
+                  fragLabel: "WTD Fragment",
+                  buyRow: true,
+                  evo: EV_AST_POW_WTD,
+                  enc: ENC_AST_POW_WTD,
+                  encStone: ENC_AST_STONE_WTD,
+                  note: "* +1 to +10 have 100% success rate",
+                  weaponNote: undefined as string | undefined,
+                },
+              ].map(({ label, fragLabel, buyRow, evo, enc, encStone, note, weaponNote }) => (
+                <div key={label}>
+                  <p className="text-sm font-semibold mb-3">{label}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Enhancement — uses {fragLabel}
+                      </p>
+                      {renderRefTable(["Action", "Amount"], [
+                        ...(buyRow ? [["Buy from Store", CONV_FRAG] as [string, number]] : []),
+                        ["Every tap +0 → +10", buyRow ? CONV_FRAG : WEAP_FRAG],
+                      ])}
+                      <p className="text-xs text-muted-foreground mt-1 italic">{note}</p>
+                      {weaponNote && <p className="text-xs text-muted-foreground italic">{weaponNote}</p>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Evo to Legend</p>
+                      {renderRefTable(["Material", "Amount"], [
+                        ["Astral Powder", evo],
+                        ["Astral Stone", EV_AST_STONE],
+                      ])}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Enhancement Legend (per tap)</p>
+                      {renderRefTable(["Material", "Amount"], [
+                        ["Astral Powder", enc],
+                        ["Astral Stone", encStone],
+                      ])}
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* WTD */}
-              <div>
-                <p className="text-sm font-semibold mb-3">WTD (Wing / Tail / Decal)</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement — uses Wtd Fragment</p>
-                    {renderRefTable(["Action", "Amount"], [
-                      ["Buy from Store", CONV_FRAG],
-                      ["Every tap +0 → +10", CONV_FRAG],
-                    ])}
-                    <p className="text-xs text-muted-foreground mt-1 italic">* +1 to +10 have 100% success rate</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Evo to Legend</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", EV_AST_POW_WTD],
-                      ["Astral Stone", EV_AST_STONE],
-                    ])}
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Enhancement Legend (per tap)</p>
-                    {renderRefTable(["Material", "Amount"], [
-                      ["Astral Powder", ENC_AST_POW_WTD],
-                      ["Astral Stone", ENC_AST_STONE_WTD],
-                    ])}
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </TabsContent>
         </Tabs>

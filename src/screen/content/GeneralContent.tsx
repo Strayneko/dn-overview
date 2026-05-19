@@ -19,21 +19,19 @@ interface FeatureItem {
 const dataNew: FeatureItem[] = [
   {
     type: "New",
-    label: "Deeply Rooted Variant Jade",
-    link: { key: TAB_KEY.jadeDeepVariant, name: TAB_KEY.jadeDeepVariant },
-    date: "12-11-2025",
+    label: "Collapsible sidebar — collapse to icon-only rail; hover any icon to see its submenu",
+    date: "19-05-2026",
   },
   {
     type: "Update",
-    label: "VIP Accessories charts",
-    link: { key: TAB_KEY.eqVIPAcc, name: TAB_KEY.eqVIPAcc },
-    date: "17-11-2025",
+    label: "All calculators redesigned with a consistent modern interface",
+    date: "19-05-2026",
   },
   {
     type: "Update",
-    label: "Enhancement Legend Conversion Weapon & WTD (+1 to +3)",
+    label: "Conversion — equipment selection redesigned with grouped card layout",
     link: { key: TAB_KEY.miscConversion, name: TAB_KEY.miscConversion },
-    date: "06-02-2026",
+    date: "19-05-2026",
   },
 ];
 
@@ -89,11 +87,20 @@ const GeneralContent = () => {
 
       {/* What's New */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-primary" />
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-            What's New
-          </h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-primary" />
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+              What's New
+            </h2>
+          </div>
+          <button
+            onClick={() => navigate({ key: TAB_KEY.releaseHistory, name: TAB_KEY.releaseHistory })}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            See all
+            <ArrowRight size={11} />
+          </button>
         </div>
 
         <div className="space-y-2">

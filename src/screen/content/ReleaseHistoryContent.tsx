@@ -24,21 +24,31 @@ const TAG_VARIANT: Record<FeatureItem["tag"], "default" | "secondary" | "destruc
 const dataNew: FeatureItem[] = [
   {
     tag: "New",
-    label: "Deeply Rooted Variant Jade",
-    link: { key: TAB_KEY.jadeDeepVariant, name: TAB_KEY.jadeDeepVariant },
-    date: "12-11-2025",
+    label: "Collapsible sidebar — collapse to icon-only rail; hover any icon to see its submenu",
+    date: "19-05-2026",
   },
   {
     tag: "Update",
-    label: "VIP Accessories charts",
-    link: { key: TAB_KEY.eqVIPAcc, name: TAB_KEY.eqVIPAcc },
-    date: "17-11-2025",
+    label: "All calculators redesigned with a consistent modern interface",
+    date: "19-05-2026",
   },
   {
     tag: "Update",
-    label: "Enhancement Legend Conversion Weapon & WTD (+1 to +3)",
+    label: "Home screen with quick-nav cards for all calculators",
+    link: { key: TAB_KEY.mainGeneral, name: TAB_KEY.mainGeneral },
+    date: "19-05-2026",
+  },
+  {
+    tag: "Update",
+    label: "Conversion — equipment selection redesigned with grouped card layout",
     link: { key: TAB_KEY.miscConversion, name: TAB_KEY.miscConversion },
-    date: "06-02-2026",
+    date: "19-05-2026",
+  },
+  {
+    tag: "Update",
+    label: "Bestie Spirit & Mount — cleaner multi-entry calculator layout",
+    link: { key: TAB_KEY.miscBestie, name: TAB_KEY.miscBestie },
+    date: "19-05-2026",
   },
 ];
 
@@ -49,6 +59,12 @@ const dataSoon: FeatureItem[] = [
 ];
 
 const dataPastFunc: FeatureItem[] = [
+  {
+    tag: "Done",
+    label: "Deeply Rooted Variant Jade",
+    link: { key: TAB_KEY.jadeDeepVariant, name: TAB_KEY.jadeDeepVariant },
+    date: "12-11-2025",
+  },
   {
     tag: "Done",
     label: "Equipment (Ancient, Kilos, Named EOD), Jade (Lunar, Skill, Erosion), Heraldry (Ancient Goddess), Talisman (Black Dragon, Eternal).",
@@ -183,6 +199,18 @@ const dataPastFunc: FeatureItem[] = [
 ];
 
 const dataPastUpdate: FeatureItem[] = [
+  {
+    tag: "Update",
+    label: "Enhancement Legend Conversion Weapon & WTD (+1 to +3)",
+    link: { key: TAB_KEY.miscConversion, name: TAB_KEY.miscConversion },
+    date: "06-02-2026",
+  },
+  {
+    tag: "Update",
+    label: "VIP Accessories charts",
+    link: { key: TAB_KEY.eqVIPAcc, name: TAB_KEY.eqVIPAcc },
+    date: "17-11-2025",
+  },
   { tag: "Done", label: "Patch Note link for some existing item in Help bar (question mark in bottom right corner)" },
   { tag: "Done", label: "Success rate note on all of the skill jade" },
   { tag: "Done", label: "Make Chart Visualization", date: "09-11-2025" },
