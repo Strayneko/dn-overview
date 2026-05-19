@@ -1,5 +1,4 @@
-import { Select, Table } from "antd";
-import { ColumnsType } from "antd/es/table";
+import { Select } from "antd";
 import {
   AlertCircle,
   AlertTriangle,
@@ -144,38 +143,6 @@ const MATERIAL_META: {
   },
 ];
 
-const refColumns: ColumnsType<AncientArmorCraftMaterial> = [
-  {
-    title: "Level",
-    dataIndex: "encLevel",
-    width: 64,
-    render: (v) => (
-      <span className="font-mono text-xs font-medium text-muted-foreground">
-        +{v}
-      </span>
-    ),
-  },
-  {
-    title: "Fragment",
-    dataIndex: "eqTypeFragment",
-    render: (v: number) => v.toLocaleString(),
-  },
-  {
-    title: "Knowledge",
-    dataIndex: "ancKnowledge",
-    render: (v: number) => v.toLocaleString(),
-  },
-  {
-    title: "Insignia",
-    dataIndex: "ancInsignia",
-    render: (v: number) => v.toLocaleString(),
-  },
-  {
-    title: "Gold",
-    dataIndex: "gold",
-    render: (v: number) => v.toLocaleString(),
-  },
-];
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -438,33 +405,74 @@ const AncientEqContent = () => {
     );
   };
 
+  const renderRefTable = (
+    label: string,
+    data: AncientArmorCraftMaterial[],
+    isNew: boolean
+  ) => {
+    const headerBg = isNew ? "bg-emerald-600 dark:bg-emerald-700" : "bg-amber-600 dark:bg-amber-700";
+    const badgeCls = isNew
+      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/25"
+      : "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/25";
+    const cardAccent = isNew ? "bg-emerald-500/5" : "bg-amber-500/5";
+
+    return (
+      <Card className="overflow-hidden">
+        <CardHeader className={cn("border-b py-3 px-4", cardAccent)}>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-inset", badgeCls)}>
+              {label}
+            </span>
+            Enhancement Rates
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={cn("text-white text-xs", headerBg)}>
+                  <th className="text-left px-4 py-2.5 font-semibold tracking-wide">Level</th>
+                  <th className="text-right px-3 py-2.5 font-semibold tracking-wide">Fragment</th>
+                  <th className="text-right px-3 py-2.5 font-semibold tracking-wide">Knowledge</th>
+                  <th className="text-right px-3 py-2.5 font-semibold tracking-wide">Insignia</th>
+                  <th className="text-right px-4 py-2.5 font-semibold tracking-wide">Gold</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((row, idx) => (
+                  <tr
+                    key={row.encLevel}
+                    className={cn(
+                      "border-b border-border/40 transition-colors hover:bg-muted/50",
+                      idx % 2 === 0 ? "bg-background" : "bg-muted/20"
+                    )}
+                  >
+                    <td className="px-4 py-1.5">
+                      <span className={cn("inline-flex h-5 min-w-[2.25rem] items-center justify-center rounded px-1.5 font-mono text-[11px] font-bold ring-1 ring-inset", badgeCls)}>
+                        +{row.encLevel}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-foreground/75">{row.eqTypeFragment.toLocaleString()}</td>
+                    <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-foreground/75">{row.ancKnowledge.toLocaleString()}</td>
+                    <td className="px-3 py-1.5 text-right font-mono text-xs tabular-nums text-foreground/75">{row.ancInsignia.toLocaleString()}</td>
+                    <td className="px-4 py-1.5 text-right font-mono text-xs tabular-nums font-semibold text-amber-600 dark:text-amber-400">{row.gold.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const refTabContent = (
     newData: AncientArmorCraftMaterial[],
     oldData: AncientArmorCraftMaterial[]
   ) => (
-    <div className="flex flex-wrap gap-4">
-      {[
-        { label: "New", data: newData },
-        { label: "Old", data: oldData },
-      ].map(({ label, data }) => (
-        <Card size="sm" key={label}>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              {label} rates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table
-              size="small"
-              dataSource={data}
-              columns={refColumns}
-              pagination={false}
-              bordered
-              rowKey="encLevel"
-            />
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid grid-cols-2 gap-4">
+      {renderRefTable("New", newData, true)}
+      {renderRefTable("Old", oldData, false)}
     </div>
   );
 
